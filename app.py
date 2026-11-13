@@ -6,6 +6,7 @@ import threading
 import time
 import uuid
 import logging
+from contextlib import contextmanager
 import requests
 import pika
 from flask import Flask, request, jsonify
@@ -18,10 +19,15 @@ DB = os.getenv('DB', '/data/app.db')
 AMQP = os.getenv('AMQP_URL', 'amqp://cinema:cinema-local@rabbitmq:5672/%2F')
 config = dict(mode='sync', idempotent=True, protection='breaker', delay=0., dedup=True)
 
+@contextmanager
 def db():
     conn = sqlite3.connect(DB, timeout=30)
     conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 os.makedirs(os.path.dirname(os.path.abspath(DB)), exist_ok=True)
 with db() as c:
