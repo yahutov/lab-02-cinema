@@ -1,0 +1,40 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports: ["127.0.0.1:15672:15672"]
+    environment:
+      RABBITMQ_DEFAULT_USER: cinema
+      RABBITMQ_DEFAULT_PASS: cinema-local
+    volumes: ["rabbit:/var/lib/rabbitmq"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  tickets:
+    build: .
+    ports: ["127.0.0.1:8001:8000"]
+    environment:
+      ROLE: tickets
+      THREADS: 4
+      DB: /data/tickets.db
+      AMQP_URL: amqp://cinema:cinema-local@rabbitmq:5672/%2F
+      LOYALTY_URL: http://loyalty:8000
+    volumes: ["tickets:/data"]
+    depends_on:
+      rabbitmq: {condition: service_healthy}
+  loyalty:
+    build: .
+    ports: ["127.0.0.1:8002:8000"]
+    environment:
+      ROLE: loyalty
+      THREADS: 32
+      DB: /data/loyalty.db
+      AMQP_URL: amqp://cinema:cinema-local@rabbitmq:5672/%2F
+    volumes: ["loyalty:/data"]
+    depends_on:
+      rabbitmq: {condition: service_healthy}
+volumes:
+  rabbit:
+  tickets:
+  loyalty:

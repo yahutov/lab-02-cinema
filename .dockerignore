@@ -1,0 +1,5 @@
+.git
+.test-deps
+__pycache__
+evidence
+*.db*
